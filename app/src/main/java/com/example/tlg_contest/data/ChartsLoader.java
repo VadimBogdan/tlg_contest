@@ -26,14 +26,14 @@ public class ChartsLoader {
     public static void loadCharts(Context appContext, Listener<List<Chart>> listener) {
         // A simple handling for fast background tasks
         new Thread(() -> {
-            final List<Chart> charts = loadChartsIntBackground(appContext);
+            final List<Chart> charts = loadChartsInBackground(appContext);
             new Handler(Looper.getMainLooper()).post(() -> listener.onResult(charts));
         }).start();
     }
 
 
     @WorkerThread
-    private static List<Chart> loadChartsIntBackground(Context appContext) {
+    private static List<Chart> loadChartsInBackground(Context appContext) {
         String jsonFile = readAsset(appContext.getAssets(), CHARTS_FILE);
         List<ChartJson> jsonCharts =
                 new Gson().fromJson(jsonFile, new TypeToken<List<ChartJson>>() {}.getType());
