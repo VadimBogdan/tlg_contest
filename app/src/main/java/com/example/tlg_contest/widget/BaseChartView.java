@@ -13,27 +13,30 @@ import android.view.View;
 import androidx.annotation.Nullable;
 
 import com.example.tlg_contest.domain.Chart;
+import com.example.tlg_contest.util.AnimationState;
+import com.example.tlg_contest.util.ChartAnimator;
+import com.example.tlg_contest.util.Range;
 
 public class BaseChartView extends View {
 
-    protected final Animator animator;
+    protected final ChartAnimator chartAnimator;
     private final Path path = new Path();
     private final Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     protected final Matrix matrix = new Matrix();
 
-    protected final FloatRange xRange = new FloatRange();
-    private final FloatRange xRangeExt = new FloatRange();
-    private final FloatRange xRangeStart = new FloatRange();
-    protected final FloatRange xRangeEnd = new FloatRange();
+    protected final Range xRange = new Range();
+    private final Range xRangeExt = new Range();
+    private final Range xRangeStart = new Range();
+    protected final Range xRangeEnd = new Range();
     private AnimationState xRangeState;
 
-    protected final FloatRange yRange = new FloatRange();
-    private final FloatRange yRangeStart = new FloatRange();
-    protected final FloatRange yRangeEnd = new FloatRange();
+    protected final Range yRange = new Range();
+    private final Range yRangeStart = new Range();
+    protected final Range yRangeEnd = new Range();
     private AnimationState yRangeState;
 
     protected Chart chart;
-    protected final FloatRange chartRange = new FloatRange();
+    protected final Range chartRange = new Range();
 
     private boolean includeZeroY;
     private int minSizeY;
@@ -44,7 +47,7 @@ public class BaseChartView extends View {
     protected BaseChartView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
-        animator = new Animator(this, this::onAnimationStep);
+        chartAnimator = new ChartAnimator(this, this::onAnimationStep);
 
         pathPaint.setStyle(Paint.Style.STROKE);
         pathPaint.setStrokeWidth(dpToPx(2f));
@@ -133,7 +136,7 @@ public class BaseChartView extends View {
                 xRangeStart.set(xRange);
 
                 xRangeState = new AnimationState();
-                animator.start();
+                chartAnimator.start();
             }
         } else {
             // Immediately setting final X range
@@ -151,7 +154,7 @@ public class BaseChartView extends View {
                 yRangeStart.set(yRange);
 
                 yRangeState = new AnimationState();
-                animator.start();
+                chartAnimator.start();
             }
         } else {
             // Immediately setting final Y range

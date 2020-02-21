@@ -1,29 +1,29 @@
-package com.example.tlg_contest.widget;
+package com.example.tlg_contest.util;
 
-class FloatRange {
-    float from;
-    float to;
+public class Range {
+    public float from;
+    public float to;
 
-    void set(FloatRange range) {
+    public void set(Range range) {
         this.from = range.from;
         this.to = range.to;
     }
 
-    void set(float from, float to) {
+    public void set(float from, float to) {
         this.from = from;
         this.to = to;
     }
 
-    float fit(float value) {
+    public float fit(float value) {
         return value < from ? from : (value > to ? to : value); // 0 100; val = 33; res = 33;
     }
 
-    void interpolate(FloatRange start, FloatRange end, float state) {
+    public void interpolate(Range start, Range end, float state) {
         this.from = start.from + (end.from - start.from) * state;
         this.to = start.to + (end.to - start.to) * state;
     }
 
-    float size() {
+    public float size() {
         return to - from + 1f;
     }
 }

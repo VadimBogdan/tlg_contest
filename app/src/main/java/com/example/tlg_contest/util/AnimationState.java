@@ -1,4 +1,4 @@
-package com.example.tlg_contest.widget;
+package com.example.tlg_contest.util;
 
 import android.os.SystemClock;
 
@@ -8,15 +8,15 @@ public class AnimationState {
 
     private final long startedAt;
 
-    AnimationState() {
+    public AnimationState() {
         this(0f);
     }
 
-    AnimationState(float state) {
+    public AnimationState(float state) {
         startedAt = SystemClock.elapsedRealtime() - (long) (DURATION * state);
     }
 
-    float getState() {
+    public float getState() {
         float state = (SystemClock.elapsedRealtime() - startedAt) / DURATION;
         return state < 0f ? 0f : (state > 1f ? 1f : state);
     }

@@ -1,4 +1,4 @@
-package com.example.tlg_contest.widget;
+package com.example.tlg_contest.util;
 
 import android.graphics.Matrix;
 
@@ -18,26 +18,26 @@ public class ChartMath {
      *
      * See https://graphics.stanford.edu/~seander/bithacks.html#ZerosOnRightModLookup
      */
-    static int countTrailingZeroBits(int x) {
+    public static int countTrailingZeroBits(int x) {
         return trailingZeroLookup[(-x & x) % 37];
     }
 
 
-    static float mapX(Matrix matrix, float x) {
+    public static float mapX(Matrix matrix, float x) {
         tmpFloatPoint[0] = x;
         tmpFloatPoint[1] = 0f;
         matrix.mapPoints(tmpFloatPoint);
         return tmpFloatPoint[0];
     }
 
-    static float mapY(Matrix matrix, float y) {
+    public static float mapY(Matrix matrix, float y) {
         tmpFloatPoint[0] = 0f;
         tmpFloatPoint[1] = y;
         matrix.mapPoints(tmpFloatPoint);
         return tmpFloatPoint[1];
     }
 
-    static float getScaleX(Matrix matrix) {
+    public static float getScaleX(Matrix matrix) {
         return mapX(matrix, 1f) - mapX(matrix, 0f);
     }
 }

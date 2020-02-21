@@ -11,6 +11,8 @@ import android.view.MotionEvent;
 import androidx.annotation.Nullable;
 
 import com.example.tlg_contest.domain.Chart;
+import com.example.tlg_contest.util.ChartMath;
+import com.example.tlg_contest.util.Range;
 
 public class ChartFinderView extends BaseChartView {
 
@@ -18,7 +20,7 @@ public class ChartFinderView extends BaseChartView {
     private final float handleTouchOffset = dpToPx(20);
     private final float handlesMinDistance = dpToPx(60);
 
-    private final FloatRange handleRange = new FloatRange();
+    private final Range handleRange = new Range();
     private final Paint handlePaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private Integer selectedHandle; // -1 for left, 1 for right and 0 for both
 
@@ -160,7 +162,7 @@ public class ChartFinderView extends BaseChartView {
     }
 
 
-    private void onAttachedRangeChanged(FloatRange range) {
+    private void onAttachedRangeChanged(Range range) {
         if (selectedHandle == null) {
             handleRange.set(range);
             invalidate();
@@ -185,3 +187,4 @@ public class ChartFinderView extends BaseChartView {
         canvas.drawRect(rightPos - handleWidth, 0, rightPos, getHeight(), handlePaint);
     }
 }
+

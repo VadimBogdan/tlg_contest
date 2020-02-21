@@ -8,9 +8,13 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 
+
 import androidx.annotation.Nullable;
 
 import com.example.tlg_contest.domain.Chart;
+import com.example.tlg_contest.util.AnimationState;
+import com.example.tlg_contest.util.ChartMath;
+import com.example.tlg_contest.util.Range;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,7 +119,7 @@ public class ChartView extends BaseChartView {
 
     public void snap(boolean animate) {
         // Calculating new from / to range which will nicely fit entire screen width
-        final FloatRange range = xRangeEnd;
+        final Range range = xRangeEnd;
 
         if (range.size() < 2 * xLabelsMinCount) {
             return; // no snapping needed
@@ -180,7 +184,7 @@ public class ChartView extends BaseChartView {
         }
 
         // Preparing new Y guides
-        final FloatRange yRange = yRangeEnd;
+        final Range yRange = yRangeEnd;
         for (int i = 0; i < Y_GUIDES_COUNT; i++) {
             yGuides.orig[i] = yRange.from + (yRange.size() - 1f) * i / (Y_GUIDES_COUNT - 1f); // 0 50 = 50, 20 100 = 120 :)
         }
@@ -212,7 +216,7 @@ public class ChartView extends BaseChartView {
 
                 if (animate) {
                     label.animation = new AnimationState(show ? label.state : 1f - label.state);
-                    animator.start();
+                    chartAnimator.start();
                 } else {
                     label.animation = null;
                     label.state = toState;
@@ -369,6 +373,7 @@ public class ChartView extends BaseChartView {
     }
 
     public interface RangeListener {
-        void onRangeChanged(FloatRange range);
+        void onRangeChanged(Range range);
     }
 }
+
