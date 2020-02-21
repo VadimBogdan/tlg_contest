@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatDelegate;
 
 import com.example.tlg_contest.data.ChartsLoader;
 import com.example.tlg_contest.domain.Chart;
+import com.example.tlg_contest.widget.ChartFinderView;
 import com.example.tlg_contest.widget.ChartView;
 
 import java.text.SimpleDateFormat;
@@ -16,10 +17,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
-
-    private Chart chart;
-
-    private int toX;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -29,32 +26,18 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        final ChartView chartView = findViewById(R.id.chart_view);
-        chartView.setDirection(-1);
-
         // TODO: Find a better format
         final SimpleDateFormat dateFormatter = new SimpleDateFormat("MMM d", Locale.US);
 
-        ChartsLoader.loadCharts(getApplicationContext(), (List<Chart> charts) -> {
-            chart = charts.get(0);
-            toX = chart.x.length - 1;
-            chartView.setChart(chart, dateFormatter::format);
-        });
+        final ChartView chartView = findViewById(R.id.chart_view);
+        final ChartFinderView chartFinderView = findViewById(R.id.chart_finder_view);
 
-        Handler handler = new Handler();
+        chartView.setDirection(-1);
+        chartView.setLabelCreator(dateFormatter::format);
 
-        Runnable action = new Runnable() {
-            @Override
-            public void run() {
-                toX -= 1;
-                if (toX > 0) {
-                    chartView.setRange(0, toX, true, true);
-                    chartView.snap(true);
-                    handler.postDelayed(this, 320L);
-                }
-            }
-        };
+        chartFinderView.attachTo(chartView);
 
-        handler.postDelayed(action, 1000L);
+        ChartsLoader.loadCharts(getApplicationContext(),
+                (List<Chart> charts) -> chartFinderView.setChart(charts.get(0)));
     }
 }

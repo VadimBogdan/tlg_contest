@@ -5,11 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Rect;
 import android.util.AttributeSet;
-import android.util.TypedValue;
-import android.view.View;
 
 import androidx.annotation.Nullable;
 
@@ -37,7 +34,12 @@ public class ChartView extends BaseChartView {
     private final Paint xLabelPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
     private final Paint xLabelDotPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
 
+    private boolean animateLabels;
+
+
     private int direction = 1;
+    private Function<Long, String> labelCreator;
+    private RangeListener rangeListener;
 
     public ChartView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -47,7 +49,7 @@ public class ChartView extends BaseChartView {
         yGuidesPaint.setColor(Color.parseColor("#F1F1F1"));
 
         xLabelPaint.setTextSize(dpToPx(12f));
-        xLabelPaint.setColor(Color.BLACK);
+        xLabelPaint.setColor(Color.parseColor("#96a2aa"));
 
         xLabelDotPaint.setStrokeWidth(dpToPx(2f));
         xLabelDotPaint.setColor(Color.parseColor("#E1E1E1"));
@@ -62,9 +64,15 @@ public class ChartView extends BaseChartView {
         this.direction = derection;
     }
 
+    public void setLabelCreator(Function<Long, String> labelCreator) {
+        this.labelCreator = labelCreator;
+    }
 
-    // TODO: move out X (& Y?)label creator
-    public void setChart(Chart chart, Function<Long, String> labelCreator) {
+    public void setRangeListener(RangeListener rangeListener) {
+        this.rangeListener = rangeListener;
+    }
+
+    public void setChart(Chart chart) {
         // Computing X labels
         int size = chart.x.length;
         xLabels = new ArrayList<>(size);
@@ -77,6 +85,9 @@ public class ChartView extends BaseChartView {
             xLabels.add(new XLabel(title, level));
         }
 
+        animateLabels = false; // Do not animate on first start
+
+        // Should be called in the end after X labels are initialized
         super.setChart(chart);
     }
 
@@ -95,7 +106,7 @@ public class ChartView extends BaseChartView {
     }
 
     @Override
-    public void setRange(int fromX, int toX, boolean animateX, boolean animateY) {
+    public void setRange(float fromX, float toX, boolean animateX, boolean animateY) {
         super.setRange(fromX, toX, animateX, animateY);
 
         initRangesIfReady();
@@ -177,7 +188,12 @@ public class ChartView extends BaseChartView {
         // Calculating current X labels level
         xLabelsLevel = calcLabelsLevel(xRange.size());
 
-        toggleLabelsVisibility(false);
+        toggleLabelsVisibility(animateLabels);
+        animateLabels = true;
+
+        if (rangeListener != null) {
+            rangeListener.onRangeChanged(xRange);
+        }
     }
 
 
@@ -226,6 +242,10 @@ public class ChartView extends BaseChartView {
                     result = true;
                 }
             }
+        }
+
+        if (rangeListener != null) {
+            rangeListener.onRangeChanged(xRange);
         }
 
         return result;
@@ -346,5 +366,9 @@ public class ChartView extends BaseChartView {
 
     public interface Function<I, O> {
         O call(I input);
+    }
+
+    public interface RangeListener {
+        void onRangeChanged(FloatRange range);
     }
 }

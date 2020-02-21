@@ -14,22 +14,26 @@ import androidx.annotation.Nullable;
 
 import com.example.tlg_contest.domain.Chart;
 
-class BaseChartView extends View {
+public class BaseChartView extends View {
 
-    private final Animator animator;
+    protected final Animator animator;
     private final Path path = new Path();
     private final Paint pathPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
-    private final Matrix matrix = new Matrix();
+    protected final Matrix matrix = new Matrix();
 
-    private final Range xRange = new Range();
-    private final Range xRangeExt = new Range();
-    private final FloatRange yRange = new FloatRange();
+    protected final FloatRange xRange = new FloatRange();
+    private final FloatRange xRangeExt = new FloatRange();
+    private final FloatRange xRangeStart = new FloatRange();
+    protected final FloatRange xRangeEnd = new FloatRange();
+    private AnimationState xRangeState;
 
+    protected final FloatRange yRange = new FloatRange();
     private final FloatRange yRangeStart = new FloatRange();
-    private final Range yRangeEnd = new Range();
+    protected final FloatRange yRangeEnd = new FloatRange();
     private AnimationState yRangeState;
 
-    private Chart chart;
+    protected Chart chart;
+    protected final FloatRange chartRange = new FloatRange();
 
     private boolean includeZeroY;
     private int minSizeY;
@@ -61,49 +65,45 @@ class BaseChartView extends View {
         insets.set(left, top, right, bottom);
     }
 
-    protected Chart getChart() {
-        return chart;
-    }
-
-    protected Matrix getChartMatrix() {
-        return matrix;
-    }
-
-    protected Range getRangeX() {
-        return xRange;
-    }
-
-    protected Range getRangeY() {
-        return yRangeEnd;
+    protected void setStrokeWidth(float strokeDp) {
+        pathPaint.setStrokeWidth(dpToPx(strokeDp));
     }
 
 
     /**
-     * Sets a chart to be drawn.
+     * Sets chart to be drawn.
      */
     public void setChart(Chart chart) {
         this.chart = chart;
+        this.chartRange.set(0, chart.x.length -1);
 
-        // Show entire chart by default
-        setRange(0, chart.x.length - 1, false);
+        // Show entire chart by default // go back to child (ChartView)
+        setRange(0, chart.x.length - 1, false, false);
     }
 
     /**
      * Specifies x-range to be shown. Chart should already be set before calling this method.
      */
-    public void setRange(int fromX, int toX, boolean animateY) {
+    public void setRange(float fromX, float toX, boolean animateX, boolean animateY) {
         if (chart == null) {
             throw new IllegalStateException("Chart is not set");
         }
 
-        // Setting X range withing available range
-        xRange.set(fromX, toX);
-        xRange.clamp(0, chart.x.length - 1);
+        // Fitting X range into available chart range
+        fromX = (int) chartRange.fit(fromX);
+        toX = (int) chartRange.fit(toX);
+
+        if (fromX >= toX) {
+            throw new IllegalArgumentException("'from' should be less than 'to'");
+        }
+
+        int fromXInt = (int) Math.floor(fromX);
+        int toXInt = (int) Math.ceil(toX);
 
         // Calculating min Y value across all visible lines
         int minY = Integer.MAX_VALUE;
         for (Chart.Line line : chart.lines) {
-            for (int i = xRange.from; i <= xRange.to; i++) {
+            for (int i = fromXInt; i <= toXInt; i++) {
                 minY = minY > line.y[i] ? line.y[i] : minY;
             }
         }
@@ -111,7 +111,7 @@ class BaseChartView extends View {
         // Calculating max Y value across all visible lines
         int maxY = Integer.MIN_VALUE;
         for (Chart.Line line : chart.lines) {
-            for (int i = xRange.from; i <= xRange.to; i++) {
+            for (int i = fromXInt; i <= toXInt; i++) {
                 maxY = maxY < line.y[i] ? line.y[i] : maxY;
             }
         }
@@ -120,10 +120,28 @@ class BaseChartView extends View {
         minY = includeZeroY && minY > 0 ? 0 : minY;
         maxY = includeZeroY && maxY < 0 ? 0 : maxY;
 
-        // Ensure we have minimum required Y values
+        // Ensure we have minimum required Y values // why + 1? because 0 inclusive =)
         if (maxY - minY + 1 < minSizeY) {
             maxY = minY + minSizeY - 1;
         }
+
+
+        if (animateX) {
+            // Running animation only if target range is changed
+            if (xRangeEnd.from != fromX || xRangeEnd.to != toX) {
+                // Starting X range animation
+                xRangeStart.set(xRange);
+
+                xRangeState = new AnimationState();
+                animator.start();
+            }
+        } else {
+            // Immediately setting final X range
+            xRange.set(fromX, toX);
+            xRangeState = null;
+        }
+
+        xRangeEnd.set(fromX, toX);
 
 
         if (animateY) {
@@ -171,25 +189,32 @@ class BaseChartView extends View {
             return;
         }
 
-        final int width = getWidth() - getPaddingLeft() - getPaddingRight() - insets.width();
-        final int height = getHeight() - getPaddingTop() - getPaddingBottom() - insets.height();
+        final int width =
+                getWidth() - getPaddingLeft() - getPaddingRight() - insets.left - insets.right;
+        final int height =
+                getHeight() - getPaddingTop() - getPaddingBottom() - insets.top - insets.bottom;
 
-        final float scaleX = width / (xRange.size() - 1f);
+        final float scaleX = width / (xRange.size() - 1f); // 111
         final float scaleY = height / (yRange.size() - 1f);
 
         // We should start at the beginning of current X range and take padding into account
-        final float left = -xRange.from * scaleX + getPaddingLeft() + insets.left;
+        final float left =
+                -xRange.from * scaleX + getPaddingLeft() + insets.left;
         // Bottom of the chart should take padding into account
-        final float bottom = getHeight() - getPaddingBottom() - insets.bottom;
+        final float bottom =
+                yRange.from * scaleY + getHeight() - getPaddingBottom() - insets.bottom;
 
         matrix.setScale(scaleX, -scaleY); // Scale and flip along X axis
-        matrix.postTranslate(left, bottom); // Translate to place
+        matrix.postTranslate(left, bottom); // Translate to place // GRAPH AREA (not x - axis dates)
 
         // Adding extra range to continue drawing chart on sides
-        int extraLeft = (int) ((getPaddingLeft() + insets.left + scaleX * 0.5) / scaleX);
-        int extraRight = (int) ((getPaddingRight() + insets.right + scaleX * 0.5) / scaleX);
-        xRangeExt.set(xRange.from - extraLeft, xRange.to + extraRight);
-        xRangeExt.clamp(0, chart.x.length - 1);
+        int extraLeft = (int) Math.ceil((getPaddingLeft() + insets.left) / scaleX);
+        int extraRight = (int) Math.ceil((getPaddingRight() + insets.right) / scaleX);
+
+        float fromX = chartRange.fit(xRange.from - extraLeft);
+        float toX = chartRange.fit(xRange.to + extraRight);
+
+        xRangeExt.set(fromX, toX);
 
         invalidate();
     }
@@ -200,13 +225,15 @@ class BaseChartView extends View {
         if (isReady()) {
 
             // Drawing chart lines
+            int from = (int) Math.floor(xRangeExt.from);
+            int to = (int) Math.ceil(xRangeExt.to);
+
             for (Chart.Line line : chart.lines) {
-                setPath(path, line.y, xRangeExt.from, xRangeExt.to);
+                setPath(path, line.y, from, to);
                 path.transform(matrix);
                 pathPaint.setColor(line.color);
                 canvas.drawPath(path, pathPaint);
             }
-
         }
     }
 
@@ -222,79 +249,37 @@ class BaseChartView extends View {
     }
 
 
-    private boolean onAnimationStep() {
+
+    protected boolean onAnimationStep() {
+        // Animating X range changes
+        if (xRangeState != null) {
+            float state = xRangeState.getState();
+
+            xRange.interpolate(xRangeStart, xRangeEnd, state);
+
+            if (state == 1f) { // Animation finished
+                xRangeState = null;
+            }
+        }
+
+        // Animating Y range changes
         if (yRangeState != null) {
             float state = yRangeState.getState();
 
             yRange.interpolate(yRangeStart, yRangeEnd, state);
 
-            if (state == 1f) {
+            if (state == 1f) { // Animation finished
                 yRangeState = null;
             }
         }
 
         updateMatrixIfReady();
 
-        return yRangeState != null;
+        return xRangeState != null || yRangeState != null;
     }
-
 
     protected float dpToPx(float value) {
         return TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, value, getResources().getDisplayMetrics());
     }
-
-
-    static class Range {
-        int from; // Including
-        int to; // Excluding // TODO: update code
-
-        void set(int from, int to) {
-            if (from >= to) {
-                throw new IllegalArgumentException("'from' should be less than 'to'");
-            }
-
-            this.from = from;
-            this.to = to;
-        }
-
-        void clamp(int min, int max) {
-            from = Math.max(from, min);
-            to = Math.min(to, max);
-        }
-
-        int size() {
-            return to - from + 1;
-        }
-    }
-
-    static class FloatRange {
-        float from;
-        float to;
-
-        void set(FloatRange range) {
-            this.from = range.from;
-            this.to = range.to;
-        }
-
-        void set(float from, float to) {
-            this.from = from;
-            this.to = to;
-        }
-
-        void interpolate(FloatRange start, Range end, float state) {
-            this.from = start.from + (end.from - start.from) * state;
-            this.to = start.to + (end.to - start.to) * state;
-        }
-
-        void clamp(float min, float max) {
-            from = Math.max(from, min);
-            to = Math.min(to, max);
-        }
-
-        float size() {
-            return to - from + 1f;
-        }
-    }
-
 }

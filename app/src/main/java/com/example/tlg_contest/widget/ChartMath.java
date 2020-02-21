@@ -36,5 +36,9 @@ public class ChartMath {
         matrix.mapPoints(tmpFloatPoint);
         return tmpFloatPoint[1];
     }
+
+    static float getScaleX(Matrix matrix) {
+        return mapX(matrix, 1f) - mapX(matrix, 0f);
+    }
 }
 
