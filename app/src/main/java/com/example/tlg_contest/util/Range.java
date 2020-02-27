@@ -15,7 +15,7 @@ public class Range {
     }
 
     public float fit(float value) {
-        return value < from ? from : (value > to ? to : value); // 0 100; val = 33; res = 33;
+        return value < from ? from : (Math.min(value, to)); // 0 100; val = 33; res = 33;
     }
 
     public void interpolate(Range start, Range end, float state) {
